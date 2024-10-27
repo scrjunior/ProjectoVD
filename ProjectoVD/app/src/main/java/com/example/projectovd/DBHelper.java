@@ -6,8 +6,11 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class DBHelper extends SQLiteOpenHelper {
 
@@ -23,6 +26,24 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String COLUMN_NAME = "nome";
     public static final String COLUMN_PRICE = "preco";
     public static final String COLUMN_QUANTITY = "quantidade";
+
+    public static final String TABLE_VENDAS = "vendas";
+    public static final String COLUMN_VENDA_ID = "venda_id";
+    public static final String COLUMN_PRODUTO_ID = "produto_id";
+    public static final String COLUMN_QUANTIDADE_VENDIDA = "quantidade_vendida";
+    public static final String COLUMN_PRECO_UNITARIO = "preco_unitario";
+    public static final String COLUMN_DATA_VENDA = "data_venda";
+
+    private static final String TABLE_VENDAS_CREATE =
+            "CREATE TABLE " + TABLE_VENDAS + " (" +
+                    COLUMN_VENDA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_PRODUTO_ID + " INTEGER, " +
+                    COLUMN_QUANTIDADE_VENDIDA + " INTEGER, " +
+                    COLUMN_PRECO_UNITARIO + " REAL, " +
+                    COLUMN_DATA_VENDA + " TEXT, " +
+                    "FOREIGN KEY(" + COLUMN_PRODUTO_ID + ") REFERENCES " +
+                    TABLE_NAME + "(" + COLUMN_ID + "));";
+
 
     // Query de criação da tabela
     private static final String TABLE_CREATE =
@@ -40,13 +61,57 @@ public class DBHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // Criação da tabela
         db.execSQL(TABLE_CREATE);
+        db.execSQL(TABLE_CREATE);
+        db.execSQL(TABLE_VENDAS_CREATE);
     }
+
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Atualização do banco de dados (se necessário)
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
         onCreate(db);
+
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_VENDAS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+        onCreate(db);
+    }
+
+    public boolean registrarVenda(List<ItemVenda> itensVenda) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            String dataAtual = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    Locale.getDefault()).format(new Date());
+
+            // Para cada item da venda
+            for (ItemVenda item : itensVenda) {
+                // Registra a venda
+                ContentValues valuesVenda = new ContentValues();
+                valuesVenda.put(COLUMN_PRODUTO_ID, item.getId());
+                valuesVenda.put(COLUMN_QUANTIDADE_VENDIDA, item.getQuantidade());
+                valuesVenda.put(COLUMN_PRECO_UNITARIO, item.getPrecoUnitario());
+                valuesVenda.put(COLUMN_DATA_VENDA, dataAtual);
+
+                long resultVenda = db.insert(TABLE_VENDAS, null, valuesVenda);
+                if (resultVenda == -1) throw new Exception("Erro ao registrar venda");
+
+                // Atualiza o estoque
+                String query = "UPDATE " + TABLE_NAME +
+                        " SET " + COLUMN_QUANTITY + " = " + COLUMN_QUANTITY +
+                        " - ? WHERE " + COLUMN_ID + " = ?";
+
+                db.execSQL(query, new Object[]{item.getQuantidade(), item.getId()});
+            }
+
+            db.setTransactionSuccessful();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            db.endTransaction();
+        }
     }
 
     // Método para inserir produto no banco de dados

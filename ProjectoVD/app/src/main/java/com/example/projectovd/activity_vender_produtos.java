@@ -1,8 +1,12 @@
 package com.example.projectovd;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.EditText;
@@ -10,6 +14,8 @@ import android.widget.AdapterView;
 import android.view.View;
 import android.text.TextWatcher;
 import android.text.Editable;
+import android.widget.Toast;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.text.NumberFormat;
@@ -24,6 +30,11 @@ public class activity_vender_produtos extends AppCompatActivity {
     private DBHelper dbHelper;
     private List<Object[]> listaProdutos;
     private NumberFormat formatoMoeda;
+    private RecyclerView recyclerViewItens;
+    private ItemVendaAdapter adapter;
+    private List<ItemVenda> itensVenda;
+    private Button buttonAdicionarItem;
+    private TextView labelTotalVenda;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +49,20 @@ public class activity_vender_produtos extends AppCompatActivity {
         labelPrecoUnitario = findViewById(R.id.labelPrecoUnitario);
         editTextQuantidade = findViewById(R.id.editTextQuantidade);
         labelTotal = findViewById(R.id.labelTotal);
+
+        // Inicializa os novos componentes
+        recyclerViewItens = findViewById(R.id.recyclerViewItens);
+        buttonAdicionarItem = findViewById(R.id.buttonAdicionarItem);
+        labelTotalVenda = findViewById(R.id.labelTotal);
+
+        // Configura o RecyclerView
+        itensVenda = new ArrayList<>();
+        adapter = new ItemVendaAdapter(itensVenda);
+        recyclerViewItens.setLayoutManager(new LinearLayoutManager(this));
+        recyclerViewItens.setAdapter(adapter);
+
+        // Configura o botão Adicionar Item
+
 
         // Inicializa o DBHelper
         dbHelper = new DBHelper(this);
@@ -76,6 +101,58 @@ public class activity_vender_produtos extends AppCompatActivity {
                 atualizarTotal();
             }
         });
+
+        buttonAdicionarItem.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                adicionarItem();
+            }
+        });
+
+    }
+
+    private void adicionarItem() {
+        if (listaProdutos.isEmpty()) {
+            Toast.makeText(this, "Nenhum produto disponível", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String quantidadeStr = editTextQuantidade.getText().toString();
+        if (quantidadeStr.isEmpty()) {
+            Toast.makeText(this, "Digite uma quantidade", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int quantidade = Integer.parseInt(quantidadeStr);
+        if (quantidade <= 0) {
+            Toast.makeText(this, "Quantidade deve ser maior que zero", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int position = spinnerProdutos.getSelectedItemPosition();
+        Object[] produtoSelecionado = listaProdutos.get(position);
+
+        int estoqueDisponivel = (int) produtoSelecionado[2];
+        if (quantidade > estoqueDisponivel) {
+            Toast.makeText(this, "Quantidade maior que o estoque disponível", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int id = (int) produtoSelecionado[3];
+        String nome = (String) produtoSelecionado[0];
+        double preco = (double) produtoSelecionado[1];
+
+        ItemVenda item = new ItemVenda(id, nome, preco, quantidade);
+        adapter.adicionarItem(item);
+
+        // Atualiza o total da venda
+        double totalVenda = adapter.getTotalVenda();
+        labelTotalVenda.setText("Total da Venda: " + formatoMoeda.format(totalVenda));
+
+        // Limpa o campo de quantidade
+        editTextQuantidade.setText("");
+
+        Toast.makeText(this, "Item adicionado com sucesso", Toast.LENGTH_SHORT).show();
     }
 
     private void carregarProdutos() {
