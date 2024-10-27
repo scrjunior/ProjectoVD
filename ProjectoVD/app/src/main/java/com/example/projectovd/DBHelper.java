@@ -61,19 +61,19 @@ public class DBHelper extends SQLiteOpenHelper {
         return result != -1; // Retorna true se a inserção for bem-sucedida
     }
 
-    public List<String> obterTodosProdutos() {
-        List<String> produtos = new ArrayList<>();
+    public List<Object[]> obterTodosProdutos() {
+        List<Object[]> produtos = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_NAME, null);
         if (cursor.moveToFirst()) {
             do {
+                int id = cursor.getInt(cursor.getColumnIndex(COLUMN_ID));
                 String nome = cursor.getString(cursor.getColumnIndex(COLUMN_NAME));
                 double preco = cursor.getDouble(cursor.getColumnIndex(COLUMN_PRICE));
                 int quantidade = cursor.getInt(cursor.getColumnIndex(COLUMN_QUANTITY));
 
-                // Formatar os dados em uma única string
-                String produto = "Nome: " + nome + ", Preço: R$" + preco + ", Quantidade: " + quantidade;
+                Object[] produto = {nome, preco, quantidade, id};
                 produtos.add(produto);
             } while (cursor.moveToNext());
         }
@@ -87,6 +87,17 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_NAME, "id = ?", new String[]{String.valueOf(id)});
         db.close();
+    }
+
+    public boolean atualizarProduto(int id, String nome, double preco, int quantidade) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_NAME, nome);
+        contentValues.put(COLUMN_PRICE, preco);
+        contentValues.put(COLUMN_QUANTITY, quantidade);
+
+        int result = db.update(TABLE_NAME, contentValues, "id = ?", new String[] { String.valueOf(id) });
+        return result > 0;
     }
 
 }

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F3F4F6"
+    tools:context=".activity_editar_produto">
+
+    <TextView
+        android:id="@+id/editProductTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Editar Produto"
+        android:textColor="@color/black"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginTop="50dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <EditText
+        android:id="@+id/editProductName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Nome do Produto"
+        android:padding="12dp"
+        android:textColorHint="#A0A0A0"
+        android:textColor="#000000"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@id/editProductTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.9" />
+
+    <EditText
+        android:id="@+id/editProductPrice"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Preço do Produto"
+        android:padding="12dp"
+        android:textColorHint="#A0A0A0"
+        android:textColor="#000000"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@id/editProductName"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.9" />
+
+    <EditText
+        android:id="@+id/editProductQuantity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Quantidade"
+        android:inputType="number"
+        android:padding="12dp"
+        android:textColorHint="#A0A0A0"
+        android:textColor="#000000"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@id/editProductPrice"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.9" />
+
+    <Button
+        android:id="@+id/updateProductButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Atualizar Produto"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@drawable/button_color_selector"
+        android:layout_marginTop="30dp"
+        app:layout_constraintTop_toBottomOf="@id/editProductQuantity"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.9" />
+</androidx.constraintlayout.widget.ConstraintLayout>

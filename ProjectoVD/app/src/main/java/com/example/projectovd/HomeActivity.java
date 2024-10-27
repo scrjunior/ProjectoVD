@@ -44,7 +44,8 @@ public class HomeActivity extends AppCompatActivity {
         sellProductButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Código para vender produtos (implementar depois)
+                Intent intent = new Intent(HomeActivity.this, activity_vender_produtos.class);
+                startActivity(intent);
             }
         });
     }
