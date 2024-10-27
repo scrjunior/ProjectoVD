@@ -9,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class HomeActivity extends AppCompatActivity {
 
-    Button registerProductButton, sellProductButton, viewProductButton;
+    Button registerProductButton, sellProductButton, viewProductButton, vendidosButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,6 +20,15 @@ public class HomeActivity extends AppCompatActivity {
         registerProductButton = findViewById(R.id.registerProductButton);
         sellProductButton = findViewById(R.id.sellProductButton);
         viewProductButton = findViewById(R.id.viewProductButton);
+        vendidosButton = findViewById(R.id.vendidosButton);
+
+        vendidosButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(HomeActivity.this, ActivityProdutosVendidos.class);
+                startActivity(intent);
+            }
+        });
 
         // Ação para o botão "Registrar Produtos"
         registerProductButton.setOnClickListener(new View.OnClickListener() {

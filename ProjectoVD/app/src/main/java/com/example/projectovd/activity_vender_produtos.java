@@ -34,6 +34,7 @@ public class activity_vender_produtos extends AppCompatActivity {
     private ItemVendaAdapter adapter;
     private List<ItemVenda> itensVenda;
     private Button buttonAdicionarItem;
+    private Button buttonFinalizarVenda;
     private TextView labelTotalVenda;
 
     @Override
@@ -42,7 +43,7 @@ public class activity_vender_produtos extends AppCompatActivity {
         setContentView(R.layout.activity_vender_produtos);
 
         // Inicializa o formato de moeda para Real (R$)
-        formatoMoeda = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        formatoMoeda = NumberFormat.getCurrencyInstance(new Locale("pt", "MZ"));
 
         // Inicializa as referências aos elementos do layout
         spinnerProdutos = findViewById(R.id.spinnerProdutos);
@@ -55,11 +56,23 @@ public class activity_vender_produtos extends AppCompatActivity {
         buttonAdicionarItem = findViewById(R.id.buttonAdicionarItem);
         labelTotalVenda = findViewById(R.id.labelTotal);
 
+        buttonFinalizarVenda = findViewById(R.id.buttonFinalizarVenda);
+        buttonFinalizarVenda.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finalizarVenda();
+            }
+        });
+
         // Configura o RecyclerView
         itensVenda = new ArrayList<>();
         adapter = new ItemVendaAdapter(itensVenda);
         recyclerViewItens.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewItens.setAdapter(adapter);
+
+
+
+
 
         // Configura o botão Adicionar Item
 
@@ -109,6 +122,31 @@ public class activity_vender_produtos extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void finalizarVenda() {
+        if (itensVenda.isEmpty()) {
+            Toast.makeText(this, "Adicione pelo menos um item à venda", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            long vendaId = dbHelper.finalizarVenda(itensVenda);
+            if (vendaId != -1) {
+                Toast.makeText(this, "Venda finalizada com sucesso!", Toast.LENGTH_SHORT).show();
+                // Limpar a lista de itens
+                itensVenda.clear();
+                adapter.notifyDataSetChanged();
+                // Atualizar o total
+                labelTotalVenda.setText("Total: " + formatoMoeda.format(0));
+                // Recarregar produtos para atualizar o estoque mostrado no spinner
+                carregarProdutos();
+            } else {
+                Toast.makeText(this, "Erro ao finalizar a venda", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Erro ao finalizar a venda: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void adicionarItem() {

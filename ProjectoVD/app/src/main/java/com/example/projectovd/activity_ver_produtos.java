@@ -69,8 +69,8 @@ public class activity_ver_produtos extends AppCompatActivity {
             Button btnEditar = convertView.findViewById(R.id.btnEditar);
             Button btnApagar = convertView.findViewById(R.id.btnApagar);
 
-            textNome.setText("Produto: " + nome);
-            textPreco.setText(String.format("Preço: R$ %.2f", preco));
+            textNome.setText(nome);
+            textPreco.setText(String.format("Preço: MZN %.2f", preco));
             textQuantidade.setText("Quantidade: " + quantidade);
 
             btnEditar.setOnClickListener(new View.OnClickListener() {

@@ -6,20 +6,20 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class DBHelper extends SQLiteOpenHelper {
 
     // Nome do banco de dados
     private static final String DATABASE_NAME = "produtos.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     // Nome da tabela
     public static final String TABLE_NAME = "produtos";
+
+    public static final String TABLE_VENDAS = "vendas";
+    public static final String TABLE_ITENS_VENDA = "itens_venda";
 
     // Colunas
     public static final String COLUMN_ID = "id";
@@ -27,23 +27,14 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String COLUMN_PRICE = "preco";
     public static final String COLUMN_QUANTITY = "quantidade";
 
-    public static final String TABLE_VENDAS = "vendas";
+    public static final String COLUMN_DATA_VENDA = "data_venda";
+    public static final String COLUMN_TOTAL_VENDA = "total_venda";
+
     public static final String COLUMN_VENDA_ID = "venda_id";
     public static final String COLUMN_PRODUTO_ID = "produto_id";
     public static final String COLUMN_QUANTIDADE_VENDIDA = "quantidade_vendida";
     public static final String COLUMN_PRECO_UNITARIO = "preco_unitario";
-    public static final String COLUMN_DATA_VENDA = "data_venda";
-
-    private static final String TABLE_VENDAS_CREATE =
-            "CREATE TABLE " + TABLE_VENDAS + " (" +
-                    COLUMN_VENDA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    COLUMN_PRODUTO_ID + " INTEGER, " +
-                    COLUMN_QUANTIDADE_VENDIDA + " INTEGER, " +
-                    COLUMN_PRECO_UNITARIO + " REAL, " +
-                    COLUMN_DATA_VENDA + " TEXT, " +
-                    "FOREIGN KEY(" + COLUMN_PRODUTO_ID + ") REFERENCES " +
-                    TABLE_NAME + "(" + COLUMN_ID + "));";
-
+    public static final String COLUMN_SUBTOTAL = "subtotal";
 
     // Query de criação da tabela
     private static final String TABLE_CREATE =
@@ -53,6 +44,23 @@ public class DBHelper extends SQLiteOpenHelper {
                     COLUMN_PRICE + " REAL, " +
                     COLUMN_QUANTITY + " INTEGER);";
 
+    private static final String TABLE_VENDAS_CREATE =
+            "CREATE TABLE " + TABLE_VENDAS + " (" +
+                    COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_DATA_VENDA + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    COLUMN_TOTAL_VENDA + " REAL);";
+
+    private static final String TABLE_ITENS_VENDA_CREATE =
+            "CREATE TABLE " + TABLE_ITENS_VENDA + " (" +
+                    COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_VENDA_ID + " INTEGER, " +
+                    COLUMN_PRODUTO_ID + " INTEGER, " +
+                    COLUMN_QUANTIDADE_VENDIDA + " INTEGER, " +
+                    COLUMN_PRECO_UNITARIO + " REAL, " +
+                    COLUMN_SUBTOTAL + " REAL, " +
+                    "FOREIGN KEY(" + COLUMN_VENDA_ID + ") REFERENCES " + TABLE_VENDAS + "(" + COLUMN_ID + "), " +
+                    "FOREIGN KEY(" + COLUMN_PRODUTO_ID + ") REFERENCES " + TABLE_NAME + "(" + COLUMN_ID + "));";
+
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -61,54 +69,52 @@ public class DBHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // Criação da tabela
         db.execSQL(TABLE_CREATE);
-        db.execSQL(TABLE_CREATE);
         db.execSQL(TABLE_VENDAS_CREATE);
+        db.execSQL(TABLE_ITENS_VENDA_CREATE);
     }
-
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // Atualização do banco de dados (se necessário)
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-        onCreate(db);
-
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_VENDAS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-        onCreate(db);
+        if (oldVersion < 2) {
+            db.execSQL(TABLE_VENDAS_CREATE);
+            db.execSQL(TABLE_ITENS_VENDA_CREATE);
+        }
     }
 
-    public boolean registrarVenda(List<ItemVenda> itensVenda) {
+    // Método para finalizar a venda
+    public long finalizarVenda(List<ItemVenda> itensVenda) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
         try {
-            String dataAtual = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
-                    Locale.getDefault()).format(new Date());
-
-            // Para cada item da venda
+            // Inserir a venda
+            ContentValues vendasValues = new ContentValues();
+            double totalVenda = 0;
             for (ItemVenda item : itensVenda) {
-                // Registra a venda
-                ContentValues valuesVenda = new ContentValues();
-                valuesVenda.put(COLUMN_PRODUTO_ID, item.getId());
-                valuesVenda.put(COLUMN_QUANTIDADE_VENDIDA, item.getQuantidade());
-                valuesVenda.put(COLUMN_PRECO_UNITARIO, item.getPrecoUnitario());
-                valuesVenda.put(COLUMN_DATA_VENDA, dataAtual);
+                totalVenda += item.getTotal();
+            }
+            vendasValues.put(COLUMN_TOTAL_VENDA, totalVenda);
+            long vendaId = db.insert(TABLE_VENDAS, null, vendasValues);
 
-                long resultVenda = db.insert(TABLE_VENDAS, null, valuesVenda);
-                if (resultVenda == -1) throw new Exception("Erro ao registrar venda");
+            // Inserir os itens da venda e atualizar o estoque
+            for (ItemVenda item : itensVenda) {
+                // Inserir item da venda
+                ContentValues itemValues = new ContentValues();
+                itemValues.put(COLUMN_VENDA_ID, vendaId);
+                itemValues.put(COLUMN_PRODUTO_ID, item.getId());
+                itemValues.put(COLUMN_QUANTIDADE_VENDIDA, item.getQuantidade());
+                itemValues.put(COLUMN_PRECO_UNITARIO, item.getPrecoUnitario());
+                itemValues.put(COLUMN_SUBTOTAL, item.getTotal());
+                db.insert(TABLE_ITENS_VENDA, null, itemValues);
 
-                // Atualiza o estoque
-                String query = "UPDATE " + TABLE_NAME +
-                        " SET " + COLUMN_QUANTITY + " = " + COLUMN_QUANTITY +
-                        " - ? WHERE " + COLUMN_ID + " = ?";
-
-                db.execSQL(query, new Object[]{item.getQuantidade(), item.getId()});
+                // Atualizar estoque
+                db.execSQL("UPDATE " + TABLE_NAME +
+                                " SET " + COLUMN_QUANTITY + " = " + COLUMN_QUANTITY + " - ? " +
+                                " WHERE " + COLUMN_ID + " = ?",
+                        new String[]{String.valueOf(item.getQuantidade()), String.valueOf(item.getId())});
             }
 
             db.setTransactionSuccessful();
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            return vendaId;
         } finally {
             db.endTransaction();
         }
@@ -163,6 +169,41 @@ public class DBHelper extends SQLiteOpenHelper {
 
         int result = db.update(TABLE_NAME, contentValues, "id = ?", new String[] { String.valueOf(id) });
         return result > 0;
+    }
+
+    // Adicione este método na classe DBHelper
+    public List<ProdutoVendido> obterProdutosVendidos() {
+        List<ProdutoVendido> produtosVendidos = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String query = "SELECT v." + COLUMN_DATA_VENDA + ", " +
+                "p." + COLUMN_NAME + ", " +
+                "iv." + COLUMN_QUANTIDADE_VENDIDA + ", " +
+                "iv." + COLUMN_PRECO_UNITARIO + ", " +
+                "iv." + COLUMN_SUBTOTAL +
+                " FROM " + TABLE_VENDAS + " v" +
+                " JOIN " + TABLE_ITENS_VENDA + " iv ON v." + COLUMN_ID + " = iv." + COLUMN_VENDA_ID +
+                " JOIN " + TABLE_NAME + " p ON p." + COLUMN_ID + " = iv." + COLUMN_PRODUTO_ID +
+                " ORDER BY v." + COLUMN_DATA_VENDA + " DESC";
+
+        Cursor cursor = db.rawQuery(query, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String dataVenda = cursor.getString(0);
+                String nomeProduto = cursor.getString(1);
+                int quantidade = cursor.getInt(2);
+                double precoUnitario = cursor.getDouble(3);
+                double subtotal = cursor.getDouble(4);
+
+                ProdutoVendido produto = new ProdutoVendido(
+                        dataVenda, nomeProduto, quantidade, precoUnitario, subtotal);
+                produtosVendidos.add(produto);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return produtosVendidos;
     }
 
 }
